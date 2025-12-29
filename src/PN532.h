@@ -61,6 +61,7 @@
 #define MIFARE_CMD_DECREMENT (0xC0)
 #define MIFARE_CMD_INCREMENT (0xC1)
 #define MIFARE_CMD_STORE (0xC2)
+#define MIFARE_ULTRALIGHT_CMD_WRITE (0xA2) ///< Write (MiFare Ultralight)
 
 // FeliCa Commands
 #define FELICA_CMD_POLLING (0x00)
@@ -126,10 +127,17 @@
 class PN532
 {
 public:
+    typedef struct {
+        byte size;
+        byte uidByte[10];
+        byte sak;
+        byte atqaByte[2];
+    } Uid;
+
+    Uid targetUid;
     PN532(PN532Interface &interface);
 
     void begin(void);
-
     // Generic PN532 functions
     bool SAMConfig(void);
     uint32_t getFirmwareVersion(void);
@@ -140,6 +148,9 @@ public:
     bool setPassiveActivationRetries(uint8_t maxRetries);
     bool setRFField(uint8_t autoRFCA, uint8_t rFOnOff);
     bool powerDownMode();
+
+    char* PICC_GetTypeName(byte sak);
+    bool WriteRegister(uint8_t *reg, uint8_t len); // used to write backdoor
 
     /**
     * @brief    Init PN532 as a target
@@ -158,10 +169,14 @@ public:
 
     // ISO14443A functions
     bool inListPassiveTarget();
-    bool startPassiveTargetIDDetection(uint8_t cardbaudrate);
+    bool startPassiveTargetIDDetection(uint8_t cardbaudrate = PN532_MIFARE_ISO14443A);
     bool readPassiveTargetID(uint8_t cardbaudrate, uint8_t *uid, uint8_t *uidLength, uint16_t timeout = 1000, bool inlist = false);
     bool inDataExchange(uint8_t *send, uint8_t sendLength, uint8_t *response, uint8_t *responseLength);
     bool inCommunicateThru(uint8_t *send, uint8_t sendLength, uint8_t *response, uint8_t *responseLength);
+
+    bool readDetectedPassiveTargetID(uint8_t *uid, uint8_t *uidLength);
+    bool readDetectedPassiveTargetID();
+    bool EMVinDataExchange(uint8_t *send, uint8_t sendLength, uint8_t *response, uint8_t *responseLength);
 
     // Mifare Classic functions
     bool mifareclassic_IsFirstBlock(uint32_t uiBlock);
@@ -171,6 +186,9 @@ public:
     uint8_t mifareclassic_WriteDataBlock(uint8_t blockNumber, uint8_t *data);
     uint8_t mifareclassic_FormatNDEF(void);
     uint8_t mifareclassic_WriteNDEFURI(uint8_t sectorNumber, uint8_t uriIdentifier, const char *url);
+
+    bool UnlockBackdoor();
+    bool mifareclassic_WriteBlock0(uint8_t *data);
 
     // Mifare Ultralight functions
     uint8_t mifareultralight_ReadPage(uint8_t page, uint8_t *buffer);
@@ -185,6 +203,11 @@ public:
     int8_t felica_WriteWithoutEncryption(uint8_t numService, const uint16_t *serviceCodeList, uint8_t numBlock, const uint16_t *blockList, uint8_t blockData[][16]);
     int8_t felica_RequestSystemCode(uint8_t *numSystemCode, uint16_t *systemCodeList);
     int8_t felica_Release();
+
+    // NTAG2xx functions
+    uint8_t ntag2xx_ReadPage(uint8_t page, uint8_t *buffer);
+    uint8_t ntag2xx_WritePage(uint8_t page, uint8_t *data);
+    uint8_t ntag2xx_WriteNDEFURI(uint8_t uriIdentifier, char *url, uint8_t dataLen);
 
     // Help functions to display formatted text
     static void PrintHex(const uint8_t *data, const uint32_t numBytes);
@@ -204,7 +227,8 @@ private:
     uint8_t _felicaIDm[8]; // FeliCa IDm (NFCID2)
     uint8_t _felicaPMm[8]; // FeliCa PMm (PAD)
 
-    uint8_t pn532_packetbuffer[64];
+#define PN532_PACKBUFFSIZ 240
+    uint8_t pn532_packetbuffer[PN532_PACKBUFFSIZ];
 
     PN532Interface *_interface;
 };

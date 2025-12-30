@@ -1,14 +1,14 @@
 #ifdef NFC_INTERFACE_SPI
 
 #include "PN532_SPI.h"
-#include "PN532_debug.h"
 #include "Arduino.h"
+#include "PN532_debug.h"
 
 #define STATUS_READ 2
 #define DATA_WRITE 1
 #define DATA_READ 3
 
-PN532_SPI::PN532_SPI(SPIClass &spi, uint8_t ss)
+PN532_SPI::PN532_SPI(SPIClass& spi, uint8_t ss)
 {
     command = 0;
     _spi = &spi;
@@ -45,7 +45,7 @@ void PN532_SPI::wakeup()
     digitalWrite(_ss, HIGH);
 }
 
-int8_t PN532_SPI::writeCommand(const uint8_t *header, uint8_t hlen, const uint8_t *body, uint8_t blen)
+int8_t PN532_SPI::writeCommand(const uint8_t* header, uint8_t hlen, const uint8_t* body, uint8_t blen)
 {
     command = header[0];
     writeFrame(header, hlen, body, blen);
@@ -168,7 +168,7 @@ bool PN532_SPI::isReady()
     return status;
 }
 
-void PN532_SPI::writeFrame(const uint8_t *header, uint8_t hlen, const uint8_t *body, uint8_t blen)
+void PN532_SPI::writeFrame(const uint8_t* header, uint8_t hlen, const uint8_t* body, uint8_t blen)
 {
     digitalWrite(_ss, LOW);
     delay(2); // wake up PN532
@@ -216,7 +216,7 @@ int8_t PN532_SPI::readAckFrame()
     const uint8_t PN532_ACK[] = {0, 0, 0xFF, 0, 0xFF, 0};
 
     uint8_t ackBuf[sizeof(PN532_ACK)];
-
+    delay(1);
     digitalWrite(_ss, LOW);
     delay(1);
     write(DATA_READ);
